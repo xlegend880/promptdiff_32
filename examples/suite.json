@@ -1,0 +1,19 @@
+{
+  "cases": [
+    {
+      "id": "json-refund",
+      "prompt": "客户问：退款多久能到账？",
+      "expect_contains": ["原路退回"],
+      "tags": ["售后"],
+      "weight": 1
+    },
+    {
+      "id": "json-password",
+      "prompt": "密码忘了，登录不上去",
+      "expect_contains": ["验证码"],
+      "expect_not_contains": ["无法处理"],
+      "tags": ["账号"],
+      "weight": 1
+    }
+  ]
+}

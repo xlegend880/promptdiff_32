@@ -1,0 +1,79 @@
+from __future__ import annotations
+
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+from promptdiff.cases import case_from_dict, load_suite
+from promptdiff.errors import SuiteError
+
+EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
+
+
+class LoadSuiteTest(unittest.TestCase):
+    def test_loads_jsonl_example(self):
+        cases = load_suite(EXAMPLES / "cases.jsonl")
+        self.assertEqual(len(cases), 8)
+        self.assertEqual(cases[0].id, "refund-sla")
+        self.assertEqual(cases[0].weight, 2.0)
+
+    def test_loads_json_example(self):
+        cases = load_suite(EXAMPLES / "suite.json")
+        self.assertEqual([case.id for case in cases], ["json-refund", "json-password"])
+
+    def test_render_replaces_placeholders(self):
+        case = case_from_dict({"id": "a", "prompt": "{{product}} 的退款", "vars": {"product": "会员"}})
+        self.assertEqual(case.render(), "会员 的退款")
+        self.assertEqual(case.unresolved_placeholders(), [])
+
+    def test_missing_id_raises(self):
+        with self.assertRaises(SuiteError):
+            case_from_dict({"prompt": "hi"})
+
+    def test_missing_prompt_raises(self):
+        with self.assertRaises(SuiteError):
+            case_from_dict({"id": "a"})
+
+    def test_bad_weight_raises(self):
+        with self.assertRaises(SuiteError):
+            case_from_dict({"id": "a", "prompt": "hi", "weight": 0})
+
+    def test_unresolved_placeholder_raises(self):
+        with self.assertRaises(SuiteError) as ctx:
+            case_from_dict({"id": "a", "prompt": "{{missing}} 你好"})
+        self.assertIn("missing", str(ctx.exception))
+
+    def test_duplicate_id_raises(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "dup.jsonl"
+            path.write_text(
+                json.dumps({"id": "a", "prompt": "1"}) + "\n" + json.dumps({"id": "a", "prompt": "2"}) + "\n",
+                encoding="utf-8",
+            )
+            with self.assertRaises(SuiteError) as ctx:
+                load_suite(path)
+            self.assertIn("重复", str(ctx.exception))
+
+    def test_broken_jsonl_reports_line_number(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "bad.jsonl"
+            path.write_text('{"id": "a", "prompt": "1"}\n{not json}\n', encoding="utf-8")
+            with self.assertRaises(SuiteError) as ctx:
+                load_suite(path)
+            self.assertIn("第 2 行", str(ctx.exception))
+
+    def test_empty_suite_raises(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "empty.jsonl"
+            path.write_text("\n\n", encoding="utf-8")
+            with self.assertRaises(SuiteError):
+                load_suite(path)
+
+    def test_missing_file_raises(self):
+        with self.assertRaises(SuiteError):
+            load_suite("/tmp/definitely-not-here-32.jsonl")
+
+
+if __name__ == "__main__":
+    unittest.main()

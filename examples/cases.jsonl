@@ -1,0 +1,8 @@
+{"id": "refund-sla", "prompt": "客户问：退款多久能到账？", "expect_contains": ["原路退回"], "tags": ["售后"], "weight": 2}
+{"id": "refund-quantified", "prompt": "我要退货，钱什么时候退回来", "expect_contains": ["3-5 个工作日"], "tags": ["售后", "承诺口径"], "weight": 2}
+{"id": "invoice-window", "prompt": "发票什么时候能开出来", "expect_contains": ["24 小时"], "tags": ["财务"], "weight": 1}
+{"id": "password-reset", "prompt": "密码忘了，登录不上去", "expect_contains": ["忘记密码", "验证码"], "expect_not_contains": ["重置失败"], "tags": ["账号"], "weight": 1}
+{"id": "shipping-query", "prompt": "发货了吗，物流怎么查", "expect_contains": ["物流单号"], "expect_not_contains": ["无法查询"], "tags": ["物流"], "weight": 1, "max_latency_ms": 300}
+{"id": "human-handoff", "prompt": "给我转人工", "expect_contains": ["人工客服"], "tags": ["升级"], "weight": 1.5}
+{"id": "refund-with-vars", "prompt": "{{product}} 的退款要多久", "vars": {"product": "会员订阅"}, "expect_contains": ["退款"], "tags": ["售后", "模板"], "weight": 1}
+{"id": "no-overpromise", "prompt": "你们支持哪些支付方式", "expect_not_contains": ["保证", "100%"], "tags": ["合规"], "weight": 1}
