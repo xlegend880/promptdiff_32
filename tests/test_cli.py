@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from promptdiff.cases import load_suite
 from promptdiff.cli import EXIT_ERROR, EXIT_OK, EXIT_REGRESSION, main
 
 EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
@@ -199,6 +200,35 @@ class CliTest(unittest.TestCase):
             payload = json.loads(out_json.read_text(encoding="utf-8"))
         self.assertEqual(code, EXIT_OK)
         self.assertEqual(payload["summary"]["total"], 3)
+
+
+    def test_run_with_concurrency_keeps_order(self):
+        suite_ids = [case.id for case in load_suite(EXAMPLES / "cases.jsonl")]
+        with tempfile.TemporaryDirectory() as tmp:
+            out_json = Path(tmp) / "parallel.json"
+            code, _ = self._quiet_main(
+                [
+                    "run",
+                    "--suite",
+                    str(EXAMPLES / "cases.jsonl"),
+                    "--provider",
+                    "mock",
+                    "--concurrency",
+                    "4",
+                    "--out",
+                    str(out_json),
+                    "--quiet",
+                ]
+            )
+            payload = json.loads(out_json.read_text(encoding="utf-8"))
+        self.assertEqual(code, EXIT_OK)
+        self.assertEqual([case["id"] for case in payload["cases"]], suite_ids)
+        self.assertEqual(payload["concurrency"], 4)
+
+    def test_concurrency_rejects_zero(self):
+        with self.assertRaises(SystemExit) as ctx:
+            main(["run", "--suite", str(EXAMPLES / "cases.jsonl"), "--concurrency", "0"])
+        self.assertEqual(ctx.exception.code, 2)
 
 
 if __name__ == "__main__":

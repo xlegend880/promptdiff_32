@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import threading
+import time
 import unittest
 from pathlib import Path
 
@@ -92,6 +94,60 @@ class RunSuiteTest(unittest.TestCase):
         self.assertEqual(payload["summary"]["total"], 1)
         self.assertIsInstance(payload["cases"][0]["assertions"], list)
         self.assertEqual(payload["cases"][0]["assertions"][0]["name"], "non_empty")
+
+
+class _TrackingProvider(Provider):
+    """记录同时在飞的调用数，用来证明并发真的重叠了。"""
+
+    name = "tracking"
+    model = "tracking-1"
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._active = 0
+        self.max_active = 0
+
+    def complete(self, prompt: str) -> Completion:
+        with self._lock:
+            self._active += 1
+            self.max_active = max(self.max_active, self._active)
+        time.sleep(0.02)
+        with self._lock:
+            self._active -= 1
+        return Completion(text="ok", model=self.model, latency_ms=20.0)
+
+
+class ConcurrencyTest(unittest.TestCase):
+    def test_order_matches_input_under_concurrency(self):
+        cases = [Case(id=f"c{index:02d}", prompt=f"退款 {index}") for index in range(12)]
+        serial = run_suite(cases, MockProvider(), concurrency=1)
+        parallel = run_suite(cases, MockProvider(), concurrency=4)
+        self.assertEqual([item.id for item in parallel.cases], [case.id for case in cases])
+        self.assertEqual([item.output for item in parallel.cases], [item.output for item in serial.cases])
+
+    def test_score_is_identical_to_serial(self):
+        cases = load_suite(EXAMPLES / "cases.jsonl")
+        serial = run_suite(cases, MockProvider(variant="v2"), concurrency=1)
+        parallel = run_suite(cases, MockProvider(variant="v2"), concurrency=4)
+        self.assertEqual(serial.score, parallel.score)
+        self.assertEqual(serial.passed, parallel.passed)
+        self.assertEqual([item.status for item in serial.cases], [item.status for item in parallel.cases])
+
+    def test_calls_actually_overlap(self):
+        provider = _TrackingProvider()
+        cases = [Case(id=f"c{index}", prompt="x") for index in range(8)]
+        run_suite(cases, provider, concurrency=4)
+        self.assertGreater(provider.max_active, 1)
+        self.assertLessEqual(provider.max_active, 4)
+
+    def test_workers_clamped_to_case_count(self):
+        provider = _TrackingProvider()
+        run_suite([Case(id="only", prompt="x")], provider, concurrency=16)
+        self.assertEqual(provider.max_active, 1)
+
+    def test_concurrency_recorded_in_result(self):
+        payload = run_suite([Case(id="a", prompt="退款")], MockProvider(), concurrency=4).to_dict()
+        self.assertEqual(payload["concurrency"], 4)
 
 
 if __name__ == "__main__":

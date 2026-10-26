@@ -25,6 +25,19 @@ EXIT_OK = 0
 EXIT_REGRESSION = 1
 EXIT_ERROR = 2
 
+MAX_CONCURRENCY = 32
+
+
+def _positive_int(value: str) -> int:
+    """argparse 类型：必须是正整数。"""
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        raise argparse.ArgumentTypeError(f"需要正整数，收到 {value!r}") from None
+    if parsed < 1:
+        raise argparse.ArgumentTypeError(f"需要正整数，收到 {value!r}")
+    return parsed
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -42,6 +55,12 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--api-key-env", default="DEEPSEEK_API_KEY", help="读取 API key 的环境变量名")
     run_parser.add_argument("--mock-variant", default="v1", choices=["v1", "v2"], help="mock 提供方的变体")
     run_parser.add_argument("--retries", type=int, default=0, help="单条用例失败重试次数")
+    run_parser.add_argument(
+        "--concurrency",
+        type=_positive_int,
+        default=1,
+        help=f"并发度，默认 1（串行）。上限 {MAX_CONCURRENCY}，结果顺序始终与用例集一致",
+    )
     run_parser.add_argument("--only-tags", default=None, help="只跑包含指定标签的用例，逗号分隔，如 售后,财务")
     run_parser.add_argument("--out", default=None, help="结果 JSON 输出路径")
     run_parser.add_argument("--report", default=None, help="Markdown 报告输出路径")
@@ -81,7 +100,18 @@ def cmd_run(args: argparse.Namespace) -> int:
         base_url=args.base_url,
         api_key_env=args.api_key_env,
     )
-    result = run_suite(cases, provider, suite_label=args.suite, retries=args.retries)
+    result = run_suite(
+        cases,
+        provider,
+        suite_label=args.suite,
+        retries=args.retries,
+        concurrency=min(args.concurrency, MAX_CONCURRENCY),
+    )
+    if args.concurrency > MAX_CONCURRENCY:
+        print(
+            f"[promptdiff] 并发度 {args.concurrency} 超过上限，已按 {MAX_CONCURRENCY} 执行",
+            file=sys.stderr,
+        )
     payload = result.to_dict()
 
     if args.out:
