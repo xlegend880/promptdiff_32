@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from promptdiff.cases import case_from_dict, load_suite
+from promptdiff.cases import case_from_dict, filter_by_tags, load_suite
 from promptdiff.errors import SuiteError
 
 EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
@@ -73,6 +73,28 @@ class LoadSuiteTest(unittest.TestCase):
     def test_missing_file_raises(self):
         with self.assertRaises(SuiteError):
             load_suite("/tmp/definitely-not-here-32.jsonl")
+
+
+class FilterByTagsTest(unittest.TestCase):
+    def setUp(self):
+        self.cases = load_suite(EXAMPLES / "cases.jsonl")
+
+    def test_filters_by_intersection(self):
+        selected = filter_by_tags(self.cases, ["售后"])
+        self.assertEqual({case.id for case in selected}, {"refund-sla", "refund-quantified", "refund-with-vars"})
+
+    def test_multiple_tags_is_union(self):
+        selected = filter_by_tags(self.cases, ["财务", "物流"])
+        self.assertEqual({case.id for case in selected}, {"invoice-window", "shipping-query"})
+
+    def test_empty_filter_keeps_everything(self):
+        self.assertEqual(len(filter_by_tags(self.cases, [])), len(self.cases))
+        self.assertEqual(len(filter_by_tags(self.cases, ["  "])), len(self.cases))
+
+    def test_no_match_raises_instead_of_returning_empty(self):
+        # 空集合会让 CI 以满分通过，必须显式报错
+        with self.assertRaises(SuiteError):
+            filter_by_tags(self.cases, ["不存在的标签"])
 
 
 if __name__ == "__main__":

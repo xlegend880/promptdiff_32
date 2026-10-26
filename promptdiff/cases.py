@@ -172,3 +172,18 @@ def _check_duplicate_ids(cases: Iterable[Case]) -> None:
         if case.id in seen:
             raise SuiteError(f"用例 id 重复: {case.id}")
         seen.add(case.id)
+
+
+def filter_by_tags(cases: list, tags: Iterable[str]) -> list:
+    """按标签取交集筛选用例。
+
+    过滤后为空会报错而不是返回空列表：一次「什么都没跑」的运行
+    在 CI 里会以满分通过，这是最危险的假绿灯。
+    """
+    wanted = {tag.strip() for tag in tags if tag and tag.strip()}
+    if not wanted:
+        return list(cases)
+    selected = [case for case in cases if wanted & set(case.tags)]
+    if not selected:
+        raise SuiteError(f"按标签 {', '.join(sorted(wanted))} 过滤后没有任何用例")
+    return selected

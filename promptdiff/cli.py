@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 from . import __version__
-from .cases import load_suite
+from .cases import filter_by_tags, load_suite
 from .compare import diff_runs, load_run
 from .errors import BaselineError, PromptDiffError, ProviderError, SuiteError
 from .providers import get_provider
@@ -42,6 +42,7 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--api-key-env", default="DEEPSEEK_API_KEY", help="读取 API key 的环境变量名")
     run_parser.add_argument("--mock-variant", default="v1", choices=["v1", "v2"], help="mock 提供方的变体")
     run_parser.add_argument("--retries", type=int, default=0, help="单条用例失败重试次数")
+    run_parser.add_argument("--only-tags", default=None, help="只跑包含指定标签的用例，逗号分隔，如 售后,财务")
     run_parser.add_argument("--out", default=None, help="结果 JSON 输出路径")
     run_parser.add_argument("--report", default=None, help="Markdown 报告输出路径")
     run_parser.add_argument("--baseline", default=None, help="基线结果 JSON 路径")
@@ -63,6 +64,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     validate_parser = subparsers.add_parser("validate", help="只校验用例集，不调用模型")
     validate_parser.add_argument("--suite", required=True)
+    validate_parser.add_argument("--only-tags", default=None, help="只统计包含指定标签的用例，逗号分隔")
     validate_parser.set_defaults(func=cmd_validate)
 
     return parser
@@ -70,6 +72,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def cmd_run(args: argparse.Namespace) -> int:
     cases = load_suite(args.suite)
+    if args.only_tags:
+        cases = filter_by_tags(cases, args.only_tags.split(","))
     provider = get_provider(
         args.provider,
         variant=args.mock_variant,
@@ -123,6 +127,8 @@ def cmd_compare(args: argparse.Namespace) -> int:
 
 def cmd_validate(args: argparse.Namespace) -> int:
     cases = load_suite(args.suite)
+    if args.only_tags:
+        cases = filter_by_tags(cases, args.only_tags.split(","))
     print(f"[promptdiff] 用例集合法，共 {len(cases)} 条用例")
     return EXIT_OK
 

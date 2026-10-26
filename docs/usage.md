@@ -116,10 +116,11 @@ runs/                # 已在 .gitignore 里，本地随便跑
 可以，`id` 不同即可。但更推荐把差异放进 `vars`，让用例意图保持单一。
 
 **Q：能只跑某几条用例吗？**
-当前版本要跑全量。临时调试可以用 `jq` 从用例集里筛一份临时文件：
+可以，按 `tags` 过滤：`--only-tags 售后,财务`（多个标签取并集）。过滤后一条都不剩会直接报错退出（码 2）——「什么都没跑」在 CI 里会以满分通过，那是最危险的假绿灯。
+需要按 id 精确挑选时，仍可以用 `jq` 造一份临时用例集：
 
 ```bash
-jq -c 'select(.tags // [] | index("售后"))' cases.jsonl > /tmp/sub.jsonl
+jq -c 'select(.id | startswith("refund"))' cases.jsonl > /tmp/sub.jsonl
 ```
 
 **Q：中文以外的场景能用吗？**
@@ -132,8 +133,8 @@ jq -c 'select(.tags // [] | index("售后"))' cases.jsonl > /tmp/sub.jsonl
 ```
 promptdiff run      --suite F [--provider mock|openai] [--model M] [--base-url U]
                     [--out F] [--report F] [--baseline F] [--sim-threshold N]
-                    [--retries N] [--fail-on-regression] [--quiet]
+                    [--only-tags T] [--retries N] [--fail-on-regression] [--quiet]
 promptdiff compare  --baseline F --current F [--sim-threshold N] [--report F]
-promptdiff validate --suite F
+promptdiff validate --suite F [--only-tags T]
 promptdiff --version
 ```
