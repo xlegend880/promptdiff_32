@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime as _dt
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass, field
 
 from . import __version__
@@ -50,6 +51,7 @@ class RunResult:
     started_at: str
     duration_ms: float
     cases: list
+    concurrency: int = 1
     tool_version: str = __version__
 
     @property
@@ -95,6 +97,7 @@ class RunResult:
             "suite": self.suite,
             "started_at": self.started_at,
             "duration_ms": round(self.duration_ms, 1),
+            "concurrency": self.concurrency,
             "summary": {
                 "total": self.total,
                 "passed": self.passed,
@@ -113,21 +116,27 @@ def run_suite(
     provider: Provider,
     suite_label: str = "<memory>",
     retries: int = 0,
+    concurrency: int = 1,
     on_case=None,
 ) -> RunResult:
     """逐条执行用例。
 
     单条用例抛错不会中断整轮运行，而是记为 error 状态——
     回归测试最怕的就是「一条网络抖动导致整份报告没有产出」。
+
+    concurrency > 1 时用线程池并发执行，但**结果顺序永远与用例集一致**。
     """
     started_at = _dt.datetime.now(_dt.timezone.utc).astimezone().isoformat(timespec="seconds")
     started = time.perf_counter()
-    results = []
 
-    for case in cases:
-        results.append(_run_one(case, provider, retries))
-        if on_case is not None:
-            on_case(results[-1])
+    if concurrency > 1 and len(cases) > 1:
+        results = _run_concurrently(cases, provider, retries, concurrency, on_case)
+    else:
+        results = []
+        for case in cases:
+            results.append(_run_one(case, provider, retries))
+            if on_case is not None:
+                on_case(results[-1])
 
     duration_ms = (time.perf_counter() - started) * 1000.0
     return RunResult(
@@ -137,7 +146,28 @@ def run_suite(
         started_at=started_at,
         duration_ms=duration_ms,
         cases=results,
+        concurrency=max(1, concurrency),
     )
+
+
+def _run_concurrently(cases: list, provider: Provider, retries: int, concurrency: int, on_case=None) -> list:
+    """线程池执行，按提交顺序收集结果。
+
+    这里刻意不用 `as_completed`：它按完成顺序产出，会让报告的行序随网络抖动变化，
+    跨版本 diff 直接变成噪声。必须按 futures 列表的原始顺序取回结果。
+
+    并发度会被裁剪到不超过用例数，避免开一堆空转线程。
+    """
+    workers = max(1, min(concurrency, len(cases)))
+    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="promptdiff") as pool:
+        futures = [pool.submit(_run_one, case, provider, retries) for case in cases]
+        results = []
+        for future in futures:
+            result = future.result()
+            results.append(result)
+            if on_case is not None:
+                on_case(result)
+    return results
 
 
 def _run_one(case: Case, provider: Provider, retries: int) -> CaseResult:

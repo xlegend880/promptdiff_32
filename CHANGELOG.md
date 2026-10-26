@@ -4,17 +4,21 @@
 
 ## [Unreleased]
 
-### 新增
-
-- `--only-tags`：按 `tags` 筛选要执行的用例（多标签取并集），`run` 与 `validate` 均支持。过滤后为空会报错退出，避免「零用例满分」的假绿灯。
-- 差异报告的相似度列改为三位小数：阈值附近 0.89 与 0.90 在两位小数下看不出差别，无法判断是否越界。
-- 差异报告的「说明」列截断宽度由 80 字放宽到 120 字：断言失败原因经常在 80 字之后才说到点上。
-
 ### 计划中
 
-- 并发执行（`--concurrency`）
 - 多模型 A/B 交叉对比
 - `--update-baseline` 交互式基线更新
+
+## [0.2.0] - 2026-10-26
+
+### 新增
+
+- 并发执行：`--concurrency N`，用例级线程池，默认 1（串行），上限 32。**结果顺序始终与用例集原始顺序一致**——若按完成顺序落盘，报告 diff 会随网络抖动变化，跨版本对比直接失效。
+- 结果 JSON 新增 `concurrency` 字段，便于事后判断一次运行是串行还是并发。
+
+### 修复
+
+- CHANGELOG 中已随 v0.1.0 发布的条目（`--only-tags`、相似度三位小数、说明列 120 字）曾被误记为 Unreleased，现归位到 0.1.0。
 
 ## [0.1.0] - 2026-10-26
 
@@ -32,6 +36,9 @@
 - CLI 三个子命令：`run` / `compare` / `validate`，退出码 0/1/2 可直接用于 CI 卡点。
 - 错误隔离：单条用例失败不中断整轮，记为 `error` 并在对比时按回归处理。
 - 离线演示脚本 `scripts/demo.sh`，用 v1/v2 两个 mock 变体演示「回归被检出」的完整链路。
+- `--only-tags`：按 `tags` 筛选要执行的用例（多标签取并集），`run` 与 `validate` 均支持。过滤后为空会报错退出，避免「零用例满分」的假绿灯。
+- 差异报告的相似度列改为三位小数：阈值附近 0.89 与 0.90 在两位小数下看不出差别，无法判断是否越界。
+- 差异报告的「说明」列截断宽度由 80 字放宽到 120 字：断言失败原因经常在 80 字之后才说到点上。
 - 50 个单元测试，覆盖到 CLI 退出码。
 
 ### 设计决策
@@ -40,5 +47,6 @@
 - 相似度用 `difflib.SequenceMatcher`（`autojunk=False`）而非向量模型，换取确定性与可解释性。
 - 零运行时第三方依赖，保证三年后仍能跑起来。
 
-[Unreleased]: https://github.com/xlegend880/promptdiff_32/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/xlegend880/promptdiff_32/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/xlegend880/promptdiff_32/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/xlegend880/promptdiff_32/releases/tag/v0.1.0

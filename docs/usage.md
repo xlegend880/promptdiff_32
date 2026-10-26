@@ -22,6 +22,7 @@ promptdiff run --suite cases.jsonl --provider openai --model deepseek-chat \
 ```bash
 promptdiff run --suite cases.jsonl \
   --provider openai --model deepseek-chat \
+  --concurrency 4 \
   --baseline .baseline/main.json \
   --report promptdiff-report.md \
   --fail-on-regression --quiet
@@ -123,6 +124,9 @@ runs/                # 已在 .gitignore 里，本地随便跑
 jq -c 'select(.id | startswith("refund"))' cases.jsonl > /tmp/sub.jsonl
 ```
 
+**Q：用例多了跑得慢怎么办？**
+用 `--concurrency N` 并发（默认 1，即串行，上限 32）。**结果顺序始终与用例集一致**，所以报告仍然可以逐行 diff。并发度不是越大越好：接口侧通常有速率限制，建议从 4 试起，观察是否出现 429。
+
 **Q：中文以外的场景能用吗？**
 能。断言匹配只做小写化和去空白，对英文、日文都成立；相似度用字符级序列匹配，对无空格语言（中日）反而比按词切分更稳。
 
@@ -133,7 +137,8 @@ jq -c 'select(.id | startswith("refund"))' cases.jsonl > /tmp/sub.jsonl
 ```
 promptdiff run      --suite F [--provider mock|openai] [--model M] [--base-url U]
                     [--out F] [--report F] [--baseline F] [--sim-threshold N]
-                    [--only-tags T] [--retries N] [--fail-on-regression] [--quiet]
+                    [--only-tags T] [--concurrency N] [--retries N]
+                    [--fail-on-regression] [--quiet]
 promptdiff compare  --baseline F --current F [--sim-threshold N] [--report F]
 promptdiff validate --suite F [--only-tags T]
 promptdiff --version
