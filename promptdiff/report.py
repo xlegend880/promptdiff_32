@@ -47,7 +47,7 @@ def render_diff_markdown(diff: dict) -> str:
         f"漂移 {counts.get('drift', 0)} · 新增 {counts.get('new', 0)} · 移除 {counts.get('removed', 0)}",
         f"- 相似度告警阈值：{diff.get('similarity_threshold', 0):.2f}",
         "",
-        "| 用例 | 变化 | 基线 | 当前 | 相似度 | 说明 |",
+        "| 用例 | 变化 | 基线 | 当前 | 相似度 | 说明（截断 120 字） |",
         "| --- | --- | --- | --- | --- | --- |",
     ]
     for case in diff.get("cases", []):
@@ -59,7 +59,7 @@ def render_diff_markdown(diff: dict) -> str:
                 base=_cell(case.get("baseline_status", "-"), 12),
                 curr=_cell(case.get("current_status", "-"), 12),
                 sim=float(case.get("similarity", 0.0)),
-                detail=_cell(case.get("detail", ""), 80),
+                detail=_cell(case.get("detail", ""), 120),
             )
         )
     lines.append("")
