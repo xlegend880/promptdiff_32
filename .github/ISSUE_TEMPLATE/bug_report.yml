@@ -1,0 +1,70 @@
+name: Bug 报告
+description: 报告一个可复现的问题
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。请尽量提供可复现的最小用例集，这比描述重要得多。
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 发生了什么
+      description: 实际行为与预期行为的差异
+      placeholder: 我执行了 `promptdiff run ...`，期望检测出 2 条回归，实际报告为 0 条。
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现步骤
+      description: 包含命令、用例集片段、Python 版本
+      placeholder: |
+        1. Python 3.11.6
+        2. `pip install -e .`
+        3. `promptdiff run --suite cases.jsonl --provider mock --baseline b.json`
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: cases
+    attributes:
+      label: 相关用例（脱敏后）
+      description: 至少一条能触发问题的用例 JSON
+      render: json
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      description: `promptdiff --version` 的输出
+      placeholder: promptdiff_32 0.1.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: provider
+    attributes:
+      label: 使用的提供方
+      options:
+        - mock
+        - openai（兼容端点）
+        - 其他
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 自查
+      options:
+        - label: 我已搜索过已有 issue，没有重复
+          required: true
+        - label: 我已确认不是自己的用例集格式问题（`promptdiff validate` 通过）
+          required: false

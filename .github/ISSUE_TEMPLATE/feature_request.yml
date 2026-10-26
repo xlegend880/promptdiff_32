@@ -1,0 +1,56 @@
+name: 功能建议
+description: 提出一个新能力或改进
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提建议前请先看一眼 README 的「路线图」和 `docs/strategy-wu-kan-san-ding.md`，
+        有些想法可能已经在计划里，或者被明确判定为「不做」。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你遇到的具体问题
+      description: 描述场景，不要直接给方案——方案往往有多种，场景只有一个
+      placeholder: 我的用例集有 200 条，串行跑一轮要 6 分钟，导致本地不愿意跑。
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 你希望的解决方式
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 你考虑过的替代方案
+      description: 包括「用别的工具也能做」这类结论
+    validations:
+      required: false
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 影响范围
+      options:
+        - 新增断言类型
+        - 新增模型提供方
+        - CLI / 报告输出
+        - 性能
+        - 文档
+        - 其他
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: willingness
+    attributes:
+      label: 你是否愿意提交 PR
+      options:
+        - label: 愿意，我已读过 CONTRIBUTING.md
+          required: false
