@@ -66,6 +66,7 @@
   "suite": "examples/cases.jsonl",
   "started_at": "2026-10-26T15:30:15+08:00",
   "duration_ms": 0.4,
+  "concurrency": 1,
   "summary": {"total": 8, "passed": 6, "failed": 2, "errored": 0,
               "score": 0.7143, "avg_latency_ms": 164.9, "total_cost_usd": 0.0},
   "cases": [
@@ -120,7 +121,7 @@ BaselineError（基线文件）
 | 新断言类型 | `cases.py` 解析 + `metrics.py` 判定 + 测试 + README 字段表 | 四处必须同步 |
 | 新模型提供方 | `providers.py` 实现 `complete()` + `get_provider()` 注册 | 只依赖标准库 |
 | 新的输出格式（JUnit XML / HTML） | `report.py` 加一个 `render_*` | 不要动 `compare.py` |
-| 并发执行 | `runner.py` 内加线程池 | 结果顺序必须保持用例集原始顺序，否则报告 diff 全是噪声 |
+| 并发执行 | 已实现（v0.2.0）：`run_suite(concurrency=N)` | 按 futures 提交顺序取回结果，**不能用 `as_completed`**，否则报告行序随网络抖动变化 |
 | 基线自动更新 | `cli.py` 加子命令 | 需要二次确认，避免误覆盖 |
 
 ## 七、测试策略
@@ -133,4 +134,4 @@ BaselineError（基线文件）
 | 对比 | `test_compare.py` | 七类变化各一例，含「error 也算回归」 |
 | 端到端 | `test_cli.py` | 三个子命令 + 三种退出码 + 报告落盘 |
 
-共 50 个测试，全部用标准库 `unittest`，无 mock 框架——`MockProvider` 本身就是可控的假模型，比打桩更接近真实调用链。
+共 64 个测试，全部用标准库 `unittest`，无 mock 框架——`MockProvider` 本身就是可控的假模型，比打桩更接近真实调用链。并发部分用 `_TrackingProvider` 记录同时在飞的调用数，直接证明「并发真的重叠了」，而不是只断言结果正确。
