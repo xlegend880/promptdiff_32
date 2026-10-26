@@ -165,5 +165,41 @@ class CliTest(unittest.TestCase):
         self.assertIn("不存在", out)
 
 
+    def test_only_tags_filters_cases(self):
+        code, out = self._quiet_main(
+            ["validate", "--suite", str(EXAMPLES / "cases.jsonl"), "--only-tags", "售后"]
+        )
+        self.assertEqual(code, EXIT_OK)
+        self.assertIn("3 条用例", out)
+
+    def test_only_tags_without_match_returns_2(self):
+        code, out = self._quiet_main(
+            ["validate", "--suite", str(EXAMPLES / "cases.jsonl"), "--only-tags", "不存在"]
+        )
+        self.assertEqual(code, EXIT_ERROR)
+        self.assertIn("没有任何用例", out)
+
+    def test_run_with_only_tags(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out_json = Path(tmp) / "tagged.json"
+            code, _ = self._quiet_main(
+                [
+                    "run",
+                    "--suite",
+                    str(EXAMPLES / "cases.jsonl"),
+                    "--provider",
+                    "mock",
+                    "--only-tags",
+                    "售后",
+                    "--out",
+                    str(out_json),
+                    "--quiet",
+                ]
+            )
+            payload = json.loads(out_json.read_text(encoding="utf-8"))
+        self.assertEqual(code, EXIT_OK)
+        self.assertEqual(payload["summary"]["total"], 3)
+
+
 if __name__ == "__main__":
     unittest.main()

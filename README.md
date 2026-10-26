@@ -131,6 +131,14 @@ promptdiff run --suite examples/cases.jsonl --provider mock \
 promptdiff validate --suite examples/cases.jsonl
 ```
 
+按标签只跑一部分（多个标签取并集）：
+
+```bash
+promptdiff run --suite examples/cases.jsonl --provider mock --only-tags 售后,财务
+```
+
+过滤后若一条用例都不剩，工具会报错退出（码 2）而不是「零用例满分通过」。
+
 ---
 
 ## 接入真实模型
