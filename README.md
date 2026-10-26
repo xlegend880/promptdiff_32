@@ -230,6 +230,10 @@ promptdiff_32/
 
 ---
 
+## 项目分析
+
+为什么这个项目长成现在这样、为什么明确拒绝做平台与 SaaS——见 [五看三定战略分析](docs/strategy-wu-kan-san-ding.md)。那份文档里的「不做清单」，就是本项目的边界。
+
 ## 参与贡献
 
 欢迎 issue 和 PR，请先读 [CONTRIBUTING.md](CONTRIBUTING.md) 与 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。
