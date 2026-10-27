@@ -39,6 +39,27 @@ class LoadSuiteTest(unittest.TestCase):
         with self.assertRaises(SuiteError):
             case_from_dict({"id": "a", "prompt": "hi", "weight": 0})
 
+    def test_regex_assertions_parsed(self):
+        case = case_from_dict(
+            {
+                "id": "reg1",
+                "prompt": "test",
+                "expect_regex": r"\d+",
+                "expect_not_regex": [r"error", r"fail"],
+            }
+        )
+        self.assertEqual(case.expect_regex, (r"\d+",))
+        self.assertEqual(case.expect_not_regex, (r"error", r"fail"))
+
+    def test_invalid_regex_raises(self):
+        with self.assertRaises(SuiteError) as ctx:
+            case_from_dict({"id": "a", "prompt": "p", "expect_regex": "[open("})
+        self.assertIn("非法正则表达式", str(ctx.exception))
+
+        with self.assertRaises(SuiteError) as ctx:
+            case_from_dict({"id": "a", "prompt": "p", "expect_not_regex": "(?P<bad"})
+        self.assertIn("非法正则表达式", str(ctx.exception))
+
     def test_unresolved_placeholder_raises(self):
         with self.assertRaises(SuiteError) as ctx:
             case_from_dict({"id": "a", "prompt": "{{missing}} 你好"})

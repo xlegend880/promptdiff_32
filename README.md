@@ -35,7 +35,7 @@
 | 概念 | 含义 |
 | --- | --- |
 | **用例（Case）** | 一个输入 prompt + 若干条断言 + 可选权重 |
-| **断言（Assertion）** | `expect_contains` / `expect_not_contains` / `max_latency_ms`，全部通过才算用例通过 |
+| **断言（Assertion）** | `expect_contains` / `expect_not_contains` / `expect_regex` / `expect_not_regex` / `max_latency_ms`，全部通过才算用例通过 |
 | **基线（Baseline）** | 一次「已知良好」的运行结果，存成 JSON |
 | **回归（Regression）** | 基线通过、当前不通过 —— 这是唯一会让 CI 失败的类别 |
 | **漂移（Drift）** | 断言仍通过，但输出文本相似度低于阈值 —— 只告警，不阻断 |
@@ -115,15 +115,17 @@ promptdiff run --suite examples/cases.jsonl --provider mock \
 | `vars` | | object | 填充 prompt 里的 `{{name}}` 占位符 |
 | `expect_contains` | | string \| string[] | 输出中必须出现的片段 |
 | `expect_not_contains` | | string \| string[] | 输出中禁止出现的片段 |
+| `expect_regex` | | string \| string[] | 输出必须匹配的正则表达式 |
+| `expect_not_regex` | | string \| string[] | 输出禁止匹配的正则表达式 |
 | `tags` | | string[] | 分类标签，便于人工筛选 |
 | `weight` | | number | 默认 1.0，权重越高对得分影响越大 |
 | `max_latency_ms` | | number | 延迟上限，超时判失败 |
 
 断言匹配规则（重要）：
 
-- **忽略大小写**，**忽略全部空白**（中文排版产生的换行、缩进不会造成误判）；
-- 但**保留标点**——「3-5 个工作日」和「3至5个工作日」视为不同，这是刻意的：承诺口径的差异恰恰体现在这些细节上；
-- 输出为空时，`non_empty` 断言恒为失败，避免 `expect_not_contains` 因为「空输出里确实没有违规词」而假通过。
+- **contains / not_contains 匹配**：**忽略大小写**，**忽略全部空白**（中文排版产生的换行、缩进不会造成误判）；但**保留标点**——「3-5 个工作日」和「3至5个工作日」视为不同，这是刻意的：承诺口径的差异恰恰体现在这些细节上；
+- **regex / not_regex 匹配**：基于标准库 `re.search` 直接检索原始输出，便于约束格式规范（如单号、格式化字段等），非法正则会在加载阶段提前拦截并指明行号；
+- 输出为空时，`non_empty` 断言恒为失败，避免 `expect_not_contains` 与 `expect_not_regex` 因为「空输出里确实没有违规内容」而假通过。
 
 校验用例集（不调用模型）：
 

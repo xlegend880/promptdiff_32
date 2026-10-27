@@ -64,6 +64,28 @@ class AssertionTest(unittest.TestCase):
         results = check_assertions(self._case(expect_contains=["原路退回"]), "款项  将原路\n退回")
         self.assertTrue(all(item.ok for item in results))
 
+    def test_regex_matches_pattern(self):
+        results = check_assertions(self._case(expect_regex=[r"\d{3}-\d{4}"]), "订单号是 021-8888。")
+        self.assertTrue(all(item.ok for item in results))
+
+    def test_regex_fails_when_unmatched(self):
+        results = check_assertions(self._case(expect_regex=[r"^\d{4}$"]), "abc")
+        failed = [item for item in results if not item.ok]
+        self.assertEqual(len(failed), 1)
+        self.assertEqual(failed[0].name, r"regex:^\d{4}$")
+        self.assertIn("未匹配", failed[0].detail)
+
+    def test_not_regex_passes_when_clean(self):
+        results = check_assertions(self._case(expect_not_regex=[r"1[3-9]\d{9}"]), "无手机号")
+        self.assertTrue(all(item.ok for item in results))
+
+    def test_not_regex_detects_violation(self):
+        results = check_assertions(self._case(expect_not_regex=[r"1[3-9]\d{9}"]), "联系方式 13800138000")
+        failed = [item for item in results if not item.ok]
+        self.assertEqual(len(failed), 1)
+        self.assertEqual(failed[0].name, r"not_regex:1[3-9]\d{9}")
+        self.assertIn("匹配了禁止正则", failed[0].detail)
+
     def test_latency_assertion(self):
         case = self._case(max_latency_ms=100)
         self.assertTrue(check_latency(case, 99).ok)
