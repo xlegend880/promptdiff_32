@@ -80,6 +80,14 @@ def check_assertions(case: Case, output: str) -> list:
         ok = compact(needle) not in out
         results.append(Assertion(f"not_contains:{needle}", ok, "" if ok else "输出中出现了禁止片段"))
 
+    for pattern in case.expect_regex:
+        ok = bool(re.search(pattern, output or ""))
+        results.append(Assertion(f"regex:{pattern}", ok, "" if ok else f"输出未匹配正则 /{pattern}/"))
+
+    for pattern in case.expect_not_regex:
+        ok = not bool(re.search(pattern, output or ""))
+        results.append(Assertion(f"not_regex:{pattern}", ok, "" if ok else f"输出匹配了禁止正则 /{pattern}/"))
+
     # 延迟断言依赖真实耗时，由 runner 调用 check_latency 追加
     return results
 

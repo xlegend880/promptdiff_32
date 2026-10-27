@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
@@ -29,6 +30,8 @@ class Case:
     vars: dict = field(default_factory=dict)
     expect_contains: tuple = ()
     expect_not_contains: tuple = ()
+    expect_regex: tuple = ()
+    expect_not_regex: tuple = ()
     tags: tuple = ()
     weight: float = 1.0
     max_latency_ms: float | None = None
@@ -102,6 +105,20 @@ def case_from_dict(raw: Any, where: str = "用例") -> Case:
     ):
         raise SuiteError(f"{where}（id={case_id}）字段 max_latency_ms 必须是正数或省略")
 
+    expect_regex = _as_str_list(raw.get("expect_regex"), "expect_regex", f"{where}（id={case_id}）")
+    for pattern in expect_regex:
+        try:
+            re.compile(pattern)
+        except re.error as exc:
+            raise SuiteError(f"{where}（id={case_id}）expect_regex 包含非法正则表达式 {pattern!r}: {exc}") from exc
+
+    expect_not_regex = _as_str_list(raw.get("expect_not_regex"), "expect_not_regex", f"{where}（id={case_id}）")
+    for pattern in expect_not_regex:
+        try:
+            re.compile(pattern)
+        except re.error as exc:
+            raise SuiteError(f"{where}（id={case_id}）expect_not_regex 包含非法正则表达式 {pattern!r}: {exc}") from exc
+
     case = Case(
         id=case_id.strip(),
         prompt=prompt,
@@ -110,6 +127,8 @@ def case_from_dict(raw: Any, where: str = "用例") -> Case:
         expect_not_contains=_as_str_list(
             raw.get("expect_not_contains"), "expect_not_contains", f"{where}（id={case_id}）"
         ),
+        expect_regex=expect_regex,
+        expect_not_regex=expect_not_regex,
         tags=_as_str_list(raw.get("tags"), "tags", f"{where}（id={case_id}）"),
         weight=float(weight),
         max_latency_ms=float(max_latency) if max_latency is not None else None,
