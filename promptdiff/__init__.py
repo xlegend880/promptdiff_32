@@ -6,5 +6,5 @@
 3. 输出人类可读的 Markdown 报告 + 机器可读的 JSON 结果。
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __all__ = ["__version__"]

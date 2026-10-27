@@ -58,6 +58,19 @@ promptdiff compare --baseline runs/a.json --current runs/b.json --report runs/a-
  "expect_not_contains": ["保证", "100%", "绝对"]}
 ```
 
+**格式类约束交给 `expect_regex`。** contains 只能验证「某个片段在不在」，验证不了「形如 X」。单号、金额、日期这类有固定形状的字段，用正则比堆十条 contains 更省事也更准：
+
+```json
+{"id": "order-no-format", "prompt": "帮我查订单 A12345 到哪了",
+ "expect_regex": ["订单号[：:]\\s*[A-Z]\\d{5}"],
+ "expect_not_regex": ["1[3-9]\\d{9}"]}
+```
+
+两条使用要点：
+
+1. **正则匹配的是原始输出，不做任何归一化**。换行、全角空格都会原样参与匹配，而 contains 会先压掉空白再比。所以 `原路.*退回` 在「原路\n退回」上是不匹配的——需要跨行时显式写 `(?s)` 或 `[\s\S]`。
+2. **非法正则在加载阶段就报错**，错误信息会带上用例 id，不用等到跑起来才发现写错了。可以先用 `promptdiff validate --suite cases.jsonl` 单独校验一遍，不花 token。
+
 **权重给业务影响，不给断言数量。** 退款时效写错要赔钱，权重 2~3；措辞偏好类，权重 1 甚至 0.5。
 
 **用 `tags` 做分组。** 报告里目前不按 tag 聚合，但 `tags` 会写进结果 JSON，方便你事后用 `jq` 切：

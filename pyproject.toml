@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "promptdiff-32"
-version = "0.2.0"
+version = "0.3.0"
 description = "面向 LLM 应用的提示词回归测试工具：跑用例、存基线、比差异，零第三方依赖"
 readme = "README.md"
 requires-python = ">=3.9"

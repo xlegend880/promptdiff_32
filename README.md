@@ -125,6 +125,15 @@ promptdiff run --suite examples/cases.jsonl --provider mock \
 
 - **contains / not_contains 匹配**：**忽略大小写**，**忽略全部空白**（中文排版产生的换行、缩进不会造成误判）；但**保留标点**——「3-5 个工作日」和「3至5个工作日」视为不同，这是刻意的：承诺口径的差异恰恰体现在这些细节上；
 - **regex / not_regex 匹配**：基于标准库 `re.search` 直接检索原始输出，便于约束格式规范（如单号、格式化字段等），非法正则会在加载阶段提前拦截并指明行号；
+- **正则按原始文本匹配，`.` 默认不跨行**。同一个意图写成两种断言，结果可能不同：
+
+  | 断言 | 输出 `款项将原路\n退回` |
+  | --- | --- |
+  | `expect_contains: ["原路退回"]` | ✅ 通过（contains 会压掉空白） |
+  | `expect_regex: ["原路.*退回"]` | ❌ 失败（`.` 不匹配换行） |
+
+  这不是 bug——正则就该按原始文本走，压空白反而让量词语义变得不可预测。需要跨行匹配时显式加 `(?s)` 前缀或改用 `[\s\S]`。
+
 - 输出为空时，`non_empty` 断言恒为失败，避免 `expect_not_contains` 与 `expect_not_regex` 因为「空输出里确实没有违规内容」而假通过。
 
 校验用例集（不调用模型）：
@@ -201,7 +210,7 @@ promptdiff_32/
 │   ├── report.py      # Markdown 报告渲染
 │   └── cli.py         # 命令行入口与退出码
 ├── examples/          # 可直接跑的示例用例集
-├── tests/             # 64 个单元测试，覆盖到 CLI 退出码
+├── tests/             # 70 个单元测试，覆盖到 CLI 退出码
 ├── docs/              # 架构、用法、分支模型、战略分析
 └── scripts/demo.sh    # 离线演示
 ```
@@ -226,8 +235,9 @@ promptdiff_32/
 
 - [x] v0.1.0：用例集、断言、基线对比、Markdown 报告、CI 退出码
 - [x] v0.2.0：并发执行（`--concurrency N`），200 条用例从分钟级降到秒级，结果顺序保持不变
-- [ ] v0.3.0：多模型 A/B 对比（同一用例集跑两个模型，产出交叉表）
-- [ ] v0.4.0：`--update-baseline` 交互式确认，减少手工维护基线
+- [x] v0.3.0：正则断言（`expect_regex` / `expect_not_regex`），由 @Nad-Am 在 #5 中贡献
+- [ ] v0.4.0：多模型 A/B 对比（同一用例集跑两个模型，产出交叉表）
+- [ ] v0.5.0：`--update-baseline` 交互式确认，减少手工维护基线
 - [ ] 长期：支持 `pytest` 插件形态，让提示词断言和代码断言写在同一个测试文件里
 
 路线图的取舍逻辑见 [`docs/strategy-wu-kan-san-ding.md`](docs/strategy-wu-kan-san-ding.md)。

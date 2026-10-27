@@ -134,4 +134,4 @@ BaselineError（基线文件）
 | 对比 | `test_compare.py` | 七类变化各一例，含「error 也算回归」 |
 | 端到端 | `test_cli.py` | 三个子命令 + 三种退出码 + 报告落盘 |
 
-共 64 个测试，全部用标准库 `unittest`，无 mock 框架——`MockProvider` 本身就是可控的假模型，比打桩更接近真实调用链。并发部分用 `_TrackingProvider` 记录同时在飞的调用数，直接证明「并发真的重叠了」，而不是只断言结果正确。
+共 70 个测试，全部用标准库 `unittest`，无 mock 框架——`MockProvider` 本身就是可控的假模型，比打桩更接近真实调用链。并发部分用 `_TrackingProvider` 记录同时在飞的调用数，直接证明「并发真的重叠了」，而不是只断言结果正确。
